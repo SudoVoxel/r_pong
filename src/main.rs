@@ -1,12 +1,9 @@
-
 extern crate rand;
-use rand::seq::SliceRandom;
 use macroquad::{
     miniquad::conf::{Icon, Platform},
     prelude::*,
 };
-
-
+use rand::seq::SliceRandom;
 
 const BALL_SPEED: u16 = 1;
 const PLAYER_SPEED: u16 = 5;
@@ -56,8 +53,6 @@ impl Ball {
 
         return (player_collision, wall_collision, scoring_player);
     }
-
-    
 }
 
 impl Player {
@@ -111,14 +106,13 @@ async fn main() {
         },
         score: 0,
     };
-    let possible_directions: [(i32, i32); 4] = [(-5, 5), (-5, -5), (5, -5), (5,5)]; // this code is duplicated twice, but im too lazy to put it into a function.
-    
+    let possible_directions: [(i32, i32); 4] = [(-5, 5), (-5, -5), (5, -5), (5, 5)]; // this code is duplicated twice, but im too lazy to put it into a function.
+
     let starting_direction: (i32, i32) = match possible_directions.choose(&mut rand::thread_rng()) {
         Some(dir) => *dir,
         None => panic!("Could not select a starting direction"),
     };
-        
-    
+
     let mut direction = vec2(starting_direction.0 as f32, starting_direction.1 as f32);
     loop {
         clear_background(BLACK);
@@ -163,12 +157,14 @@ async fn main() {
                         ball.rect.x = scr_width / 2.0 - 10.0;
                         ball.rect.y = scr_height / 2.0 - 10.0;
                         ball.moving = !ball.moving;
-                        let possible_directions: [(i32, i32); 4] = [(-5, 5), (-5, -5), (5, -5), (5,5)];
-    
-                        let starting_direction: (i32, i32) = match possible_directions.choose(&mut rand::thread_rng()) {
-                            Some(dir) => *dir,
-                            None => panic!("Could not select a starting direction"),
-                        };
+                        let possible_directions: [(i32, i32); 4] =
+                            [(-5, 5), (-5, -5), (5, -5), (5, 5)];
+
+                        let starting_direction: (i32, i32) =
+                            match possible_directions.choose(&mut rand::thread_rng()) {
+                                Some(dir) => *dir,
+                                None => panic!("Could not select a starting direction"),
+                            };
                         direction = vec2(starting_direction.0 as f32, starting_direction.1 as f32)
                     }
                     2 => {
@@ -176,12 +172,14 @@ async fn main() {
                         ball.rect.x = scr_width / 2.0 - 10.0;
                         ball.rect.y = scr_height / 2.0 - 10.0;
                         ball.moving = !ball.moving;
-                        let possible_directions: [(i32, i32); 4] = [(-5, 5), (-5, -5), (5, -5), (5,5)];
-    
-                        let starting_direction: (i32, i32) = match possible_directions.choose(&mut rand::thread_rng()) {
-                            Some(dir) => *dir,
-                            None => panic!("Could not select a starting direction"),
-                        };
+                        let possible_directions: [(i32, i32); 4] =
+                            [(-5, 5), (-5, -5), (5, -5), (5, 5)];
+
+                        let starting_direction: (i32, i32) =
+                            match possible_directions.choose(&mut rand::thread_rng()) {
+                                Some(dir) => *dir,
+                                None => panic!("Could not select a starting direction"),
+                            };
                         direction = vec2(starting_direction.0 as f32, starting_direction.1 as f32)
                     }
                     _ => {}
@@ -197,14 +195,12 @@ async fn main() {
             ball.rect.y += direction.y * BALL_SPEED as f32;
         }
 
-        
-
         //putting a score counter on the screen
         if ball.moving {
             let text = format!("LEFT: {} RIGHT: {}", player_1.score, player_2.score);
             let font_size = 30.;
             let text_size = measure_text(&text, None, font_size as _, 1.0);
-            
+
             draw_text(
                 &text,
                 screen_width() / 2. - text_size.width / 2.,
@@ -212,7 +208,6 @@ async fn main() {
                 font_size,
                 WHITE,
             );
-
         } else {
             let text = "Press SPACE to start";
             let font_size = 30.;
@@ -225,7 +220,6 @@ async fn main() {
                 WHITE,
             );
         }
-        
 
         next_frame().await
     }
@@ -243,4 +237,3 @@ fn window_conf() -> Conf {
         platform: Platform::default(),
     }
 }
-
