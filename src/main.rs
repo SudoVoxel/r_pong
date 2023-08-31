@@ -7,6 +7,10 @@ use rand::seq::SliceRandom;
 
 const BALL_SPEED: u16 = 1;
 const PLAYER_SPEED: u16 = 5;
+const POSSIBLE_DIRECTIONS: [(i32, i32); 4] = [(-5, 5), (-5, -5), (5, -5), (5, 5)];
+const FONT_SIZE: f32 = 30.0;
+const WIN_WIDTH: f32 = 800.0;
+const WIN_HEIGHT: f32 = 600.0;
 
 struct Player {
     rect: Rect,
@@ -68,30 +72,27 @@ impl Player {
                     self.rect.y += speed as f32
                 }
             }
-            (true, true) => {}
-            (false, false) => {}
+            (true, true) | (false, false) => {}
+            
         }
     }
 }
 #[macroquad::main(window_conf)]
 async fn main() {
-    let scr_width: f32 = screen_width();
-    let scr_height: f32 = screen_height();
-    println!("{}, {}", scr_width, scr_height);
     let mut ball: Ball = Ball {
         rect: Rect {
-            x: (scr_width / 2.0) - 10.0,
-            y: (scr_height / 2.0) - 10.0,
+            x: (WIN_WIDTH / 2.0) - 10.0,
+            y: (WIN_HEIGHT / 2.0) - 10.0,
             w: 20.0,
             h: 20.0,
         },
-        moving: true,
+        moving: false,
     };
     let mut player_1: Player = Player {
         // Refined & perfected values delivered by my anus™
         rect: Rect {
             x: 20.0,
-            y: scr_height / 2.0,
+            y: WIN_HEIGHT / 2.0,
             w: 20.0,
             h: 80.0,
         },
@@ -99,21 +100,18 @@ async fn main() {
     };
     let mut player_2: Player = Player {
         rect: Rect {
-            x: scr_width - 40.0,
-            y: scr_height / 2.0,
+            x: WIN_WIDTH - 40.0,
+            y: WIN_WIDTH / 2.0,
             w: 20.0,
             h: 80.0,
         },
         score: 0,
     };
-    let possible_directions: [(i32, i32); 4] = [(-5, 5), (-5, -5), (5, -5), (5, 5)]; // this code is duplicated twice, but im too lazy to put it into a function.
+    
 
-    let starting_direction: (i32, i32) = match possible_directions.choose(&mut rand::thread_rng()) {
-        Some(dir) => *dir,
-        None => panic!("Could not select a starting direction"),
-    };
+    let starting_direction: (i32, i32) = get_random_direction(POSSIBLE_DIRECTIONS);
 
-    let mut direction = vec2(starting_direction.0 as f32, starting_direction.1 as f32);
+    let mut direction: Vec2 = vec2(starting_direction.0 as f32, starting_direction.1 as f32);
     loop {
         clear_background(BLACK);
 
@@ -128,17 +126,17 @@ async fn main() {
             PLAYER_SPEED,
         );
         draw_rectangle(
-            player_1.rect.x.clone(),
-            player_1.rect.y.clone(),
-            player_1.rect.w.clone(),
-            player_1.rect.h.clone(),
+            player_1.rect.x,
+            player_1.rect.y,
+            player_1.rect.w,
+            player_1.rect.h,
             WHITE,
         );
         draw_rectangle(
-            player_2.rect.x.clone(),
-            player_2.rect.y.clone(),
-            player_2.rect.w.clone(),
-            player_2.rect.h.clone(),
+            player_2.rect.x,
+            player_2.rect.y,
+            player_2.rect.w,
+            player_2.rect.h,
             WHITE,
         );
 
@@ -154,33 +152,13 @@ async fn main() {
                 match ball_collisions.2 {
                     1 => {
                         player_1.score += 1;
-                        ball.rect.x = scr_width / 2.0 - 10.0;
-                        ball.rect.y = scr_height / 2.0 - 10.0;
-                        ball.moving = !ball.moving;
-                        let possible_directions: [(i32, i32); 4] =
-                            [(-5, 5), (-5, -5), (5, -5), (5, 5)];
-
-                        let starting_direction: (i32, i32) =
-                            match possible_directions.choose(&mut rand::thread_rng()) {
-                                Some(dir) => *dir,
-                                None => panic!("Could not select a starting direction"),
-                            };
-                        direction = vec2(starting_direction.0 as f32, starting_direction.1 as f32)
+                        let buffer: (i32, i32) = reset_game(&mut ball);
+                        direction = vec2(buffer.0 as f32, buffer.1 as f32);
                     }
                     2 => {
                         player_2.score += 1;
-                        ball.rect.x = scr_width / 2.0 - 10.0;
-                        ball.rect.y = scr_height / 2.0 - 10.0;
-                        ball.moving = !ball.moving;
-                        let possible_directions: [(i32, i32); 4] =
-                            [(-5, 5), (-5, -5), (5, -5), (5, 5)];
-
-                        let starting_direction: (i32, i32) =
-                            match possible_directions.choose(&mut rand::thread_rng()) {
-                                Some(dir) => *dir,
-                                None => panic!("Could not select a starting direction"),
-                            };
-                        direction = vec2(starting_direction.0 as f32, starting_direction.1 as f32)
+                        let buffer: (i32, i32) = reset_game(&mut ball);
+                        direction = vec2(buffer.0 as f32, buffer.1 as f32);
                     }
                     _ => {}
                 }
@@ -190,36 +168,37 @@ async fn main() {
         if is_key_pressed(KeyCode::Space) {
             ball.moving = !ball.moving;
         }
-        if ball.moving {
-            ball.rect.x += direction.x * BALL_SPEED as f32;
-            ball.rect.y += direction.y * BALL_SPEED as f32;
-        }
 
-        //putting a score counter on the screen
-        if ball.moving {
-            let text = format!("LEFT: {} RIGHT: {}", player_1.score, player_2.score);
-            let font_size = 30.;
-            let text_size = measure_text(&text, None, font_size as _, 1.0);
+        match ball.moving {
+            true => {
+                ball.rect.x += direction.x * BALL_SPEED as f32;
+                ball.rect.y += direction.y * BALL_SPEED as f32;
 
-            draw_text(
-                &text,
-                screen_width() / 2. - text_size.width / 2.,
-                screen_height() / 2. - text_size.height / 2.,
-                font_size,
-                WHITE,
-            );
-        } else {
-            let text = "Press SPACE to start";
-            let font_size = 30.;
-            let text_size = measure_text(&text, None, font_size as _, 1.0);
-            draw_text(
-                &text,
-                screen_width() / 2. - text_size.width / 2.,
-                screen_height() / 2. - text_size.height / 2.,
-                font_size,
-                WHITE,
-            );
-        }
+                let text = format!("LEFT: {} RIGHT: {}", player_1.score, player_2.score).to_owned();
+
+                let text_size = measure_text(&text, None, FONT_SIZE as _, 1.0);
+
+                draw_text(
+                    &text,
+                    screen_width() / 2. - text_size.width / 2.,
+                    screen_height() / 2. - text_size.height / 2.,
+                    FONT_SIZE,
+                    WHITE,
+                );
+            }
+            false => {
+                let text = "Press SPACE to start";
+
+                let text_size = measure_text(&text, None, FONT_SIZE as _, 1.0);
+                draw_text(
+                    &text,
+                    WIN_WIDTH / 2.0 - text_size.width / 2.0,
+                    WIN_HEIGHT / 2.0 - text_size.height / 2.0,
+                    FONT_SIZE,
+                    WHITE,
+                );
+            }
+        };
 
         next_frame().await
     }
@@ -227,13 +206,27 @@ async fn main() {
 fn window_conf() -> Conf {
     Conf {
         window_title: "r_pong".to_string(),
-        window_width: 800,
-        window_height: 600,
+        window_width: WIN_WIDTH as i32,
+        window_height: WIN_HEIGHT as i32,
         high_dpi: false,
         fullscreen: false,
         sample_count: 1,
         window_resizable: false,
         icon: Some(Icon::miniquad_logo()),
         platform: Platform::default(),
+    }
+}
+fn reset_game(ball: &mut Ball) -> (i32, i32) {
+    ball.rect.x = WIN_WIDTH / 2.0 - 10.0;
+    ball.rect.y = WIN_HEIGHT / 2.0 - 10.0;
+    ball.moving = !ball.moving;
+
+    get_random_direction(POSSIBLE_DIRECTIONS)
+}
+
+fn get_random_direction(direction_array: [(i32, i32); 4]) -> (i32, i32) {
+    match direction_array.choose(&mut rand::thread_rng()) {
+        Some(dir) => *dir,
+        None => panic!("Could not select a starting direction"),
     }
 }
